@@ -1,92 +1,139 @@
 const mineflayer = require('mineflayer')
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
-const mcDataLoader = require('minecraft-data')
+const collectBlock = require('mineflayer-collectblock').plugin
+const autoEat = require('mineflayer-auto-eat').plugin
 
 const bot = mineflayer.createBot({
-  host: 'Cug_mc.aternos.me',
-  port: 18085,
-  username: 'Cug_mc'
+  host: 'cug_mc.aternos.me',
+  port: 25565,
+  username: 'SurvivalBot'
 })
 
 bot.loadPlugin(pathfinder)
+bot.loadPlugin(collectBlock)
+bot.loadPlugin(autoEat)
 
-let mcData
-let defaultMove
+let mcData, move
 
 bot.once('spawn', () => {
-  mcData = mcDataLoader(bot.version)
-  defaultMove = new Movements(bot, mcData)
-  bot.pathfinder.setMovements(defaultMove)
+  mcData = require('minecraft-data')(bot.version)
+  move = new Movements(bot, mcData)
+  bot.pathfinder.setMovements(move)
 
-  bot.chat('🤖 Survival bot online!')
+  bot.autoEat.options = {
+    priority: 'foodPoints',
+    startAt: 14,
+    bannedFood: []
+  }
 
-  setInterval(mainLoop, 5000)
+  bot.chat("I am alive...")
+
+  setInterval(mainLoop, 3000)
 })
 
 /* =========================
-   🧠 MAIN LOOP
+   🧠 SURVIVAL BRAIN
 ========================= */
-async function mainLoop() {
-  try {
-    await checkHealth()
-    await findAndChopWood()
-    await wander()
-  } catch (err) {
-    console.log(err)
-  }
+async function mainLoop () {
+  if (bot.food < 14) return findFood()
+  if (!hasTools()) return getWood()
+
+  if (needsStoneTools()) return mineStone()
+  if (needsHouse()) return buildSimpleHouse()
+
+  wander()
 }
 
 /* =========================
-   ❤️ CHECK HP
+   🌳 1. KIẾM GỖ
 ========================= */
-async function checkHealth() {
-  if (bot.health < 10) {
-    bot.chat('⚠️ HP thấp, đứng yên hồi máu')
-    bot.pathfinder.setGoal(null)
-    await sleep(5000)
-  }
-}
-
-/* =========================
-   🌳 CHẶT GỖ
-========================= */
-async function findAndChopWood() {
+async function getWood () {
   const log = bot.findBlock({
     matching: b => b.name.includes('log'),
     maxDistance: 32
   })
 
-  if (!log) return
+  if (!log) return wander()
 
-  bot.chat('🌳 Tìm thấy cây!')
+  await bot.collectBlock.collect(log)
+  bot.chat("got wood")
+}
 
-  try {
-    await bot.pathfinder.goto(
-      new goals.GoalBlock(log.position.x, log.position.y, log.position.z)
-    )
+/* =========================
+   ⛏️ 2. ĐÀO ĐÁ
+========================= */
+async function mineStone () {
+  const stone = bot.findBlock({
+    matching: mcData.blocksByName.stone.id,
+    maxDistance: 32
+  })
 
-    await bot.dig(log)
-    bot.chat('✔️ Đã chặt gỗ')
-  } catch (e) {
-    console.log('Không đào được cây')
+  if (!stone) return wander()
+
+  await bot.collectBlock.collect(stone)
+  bot.chat("stone collected")
+}
+
+/* =========================
+   🍖 3. KIẾM ĐỒ ĂN
+========================= */
+function findFood () {
+  bot.chat("hungry...")
+  const food = bot.inventory.items().find(i =>
+    i.name.includes('bread') ||
+    i.name.includes('apple') ||
+    i.name.includes('beef')
+  )
+
+  if (food) bot.equip(food, 'hand', () => bot.consume())
+}
+
+/* =========================
+   🏠 4. XÂY NHÀ CƠ BẢN
+========================= */
+function buildSimpleHouse () {
+  bot.chat("building house...")
+
+  const pos = bot.entity.position
+
+  // đặt block đơn giản (demo)
+  const dirt = bot.inventory.items().find(i => i.name.includes('dirt'))
+
+  if (dirt) {
+    bot.equip(dirt, 'hand', () => {
+      bot.chat("place block")
+    })
   }
 }
 
 /* =========================
-   🚶 ĐI LUNG TUNG
+   🚶 5. LANG THANG
 ========================= */
-async function wander() {
-  const x = bot.entity.position.x + (Math.random() * 10 - 5)
-  const z = bot.entity.position.z + (Math.random() * 10 - 5)
+function wander () {
+  const x = bot.entity.position.x + rand(-8, 8)
+  const z = bot.entity.position.z + rand(-8, 8)
 
-  bot.pathfinder.setGoal(
-    new goals.GoalXZ(x, z)
-  )
+  bot.pathfinder.setGoal(new goals.GoalXZ(x, z))
 }
 
 /* =========================
-   ⏱ SLEEP
+   🔧 CHECK LOGIC
 ========================= */
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms))
+function hasTools () {
+  return bot.inventory.items().some(i =>
+    i.name.includes('pickaxe') ||
+    i.name.includes('axe')
+  )
+}
+
+function needsStoneTools () {
+  return hasTools() && bot.heldItem == null
+}
+
+function needsHouse () {
+  return true // demo đơn giản
+}
+
+function rand (min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }
