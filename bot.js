@@ -6,7 +6,7 @@ const autoEat = require('mineflayer-auto-eat').plugin
 const bot = mineflayer.createBot({
   host: 'Cug_mc.aternos.me',
   port: 18085,
-  username: 'SurvivalBot'
+  username: 'Survival'
 })
 bot.once('spawn', () => {
   setTimeout(() => {
