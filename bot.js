@@ -4,8 +4,8 @@ const collectBlock = require('mineflayer-collectblock').plugin
 const autoEat = require('mineflayer-auto-eat').plugin
 
 const bot = mineflayer.createBot({
-  host: 'cug_mc.aternos.me',
-  port: 25565,
+  host: 'Cug_mc.aternos.me',
+  port: 18085,
   username: 'SurvivalBot'
 })
 bot.once('spawn', () => {
