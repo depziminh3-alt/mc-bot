@@ -71,7 +71,7 @@ async function getWood () {
   if (!log) return wander()
 
   await bot.collectBlock.collect(log)
-  bot.chat("got wood")
+  // bot.chat("got wood")
 }
 
 /* =========================
@@ -86,7 +86,7 @@ async function mineStone () {
   if (!stone) return wander()
 
   await bot.collectBlock.collect(stone)
-  bot.chat("stone collected")
+  // bot.chat("stone collected")
 }
 
 /* =========================
