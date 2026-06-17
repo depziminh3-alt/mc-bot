@@ -8,6 +8,21 @@ const bot = mineflayer.createBot({
   port: 25565,
   username: 'SurvivalBot'
 })
+bot.once('spawn', () => {
+  setTimeout(() => {
+    bot.chat('/login 123456')
+  }, 3000)
+})
+
+bot.on('message', (msg) => {
+  const text = msg.toString().toLowerCase()
+
+  if (text.includes('register')) {
+    setTimeout(() => {
+      bot.chat('/register 123456 123456')
+    }, 2000)
+  }
+})
 
 bot.loadPlugin(pathfinder)
 bot.loadPlugin(collectBlock)
